@@ -41,7 +41,12 @@ const useDataApi = (initialUrl, initialData) => {
       didCancel = true;
     };
   }, [url]);
-  return [state, setUrl];
+
+  const removeProducts = (id) => {
+    dispatch({ type: "REMOVE_ITEMS", payload: id });
+  };
+
+  return [state, setUrl, removeProducts];
 };
 const dataFetchReducer = (state, action) => {
   switch (action.type) {
@@ -58,6 +63,13 @@ const dataFetchReducer = (state, action) => {
         isError: false,
         data: action.payload,
       };
+    case "REMOVE_ITEMS":
+      return {
+        ...state,
+        isLoading: false,
+        isError: false,
+        data: state.data.filter((item) => item !== action.payload),
+      };
     case "FETCH_FAILURE":
       return {
         ...state,
@@ -70,6 +82,7 @@ const dataFetchReducer = (state, action) => {
 };
 
 const Products = (props) => {
+  const prodUrl = "http://localhost:1337/api/products";
   const [items, setItems] = React.useState([]);
   const [cart, setCart] = React.useState([]);
   const [total, setTotal] = React.useState(0);
@@ -77,14 +90,12 @@ const Products = (props) => {
     ReactBootstrap;
   //  Fetch Data
   const { Fragment, useState, useEffect, useReducer } = React;
-  const [query, setQuery] = useState("http://localhost:1337/api/products");
-  const [{ data: apiData, isLoading, isError }, doFetch] = useDataApi(
-    "http://localhost:1337/api/products",
-    {
-      data: [],
-    }
-  );
-  useEffect(() => {
+  const [query, setQuery] = useState(prodUrl);
+  const [{ data: apiData, isLoading, isError }, doFetch] = useDataApi(prodUrl, {
+    data: [],
+  });
+
+  const resetItems = () => {
     console.log(`Rendering Products ${JSON.stringify(apiData.data)}`);
     const { data: response } = apiData;
     const mappedItems = response.map((item) => {
@@ -95,14 +106,36 @@ const Products = (props) => {
     });
 
     setItems(mappedItems);
+  };
+  useEffect(() => {
+    resetItems(apiData);
   }, [apiData]);
 
   const addToCart = (e) => {
     let name = e.target.name;
-    let item = items.filter((item) => item.name == name);
-    console.log(`add to Cart ${JSON.stringify(item)}`);
-    setCart([...cart, ...item]);
-    doFetch(query);
+    const itemStock = items.find((item) => item.name === name);
+    console.log("itemstock", itemStock);
+    if (itemStock.instock > 0) {
+      let item = items.filter((item) => item.name == name);
+      console.log(`add to Cart ${JSON.stringify(item)}`);
+      setCart([...cart, ...item]);
+      deleteStoreItem(name);
+      doFetch(query);
+    }
+  };
+  const deleteStoreItem = (name) => {
+    const newItems = items.map((item, index) => {
+      let newQty = item.instock;
+      if (item.name === name && newQty > 0) {
+        newQty--;
+      }
+      return {
+        ...item,
+        instock: newQty,
+      };
+    });
+
+    setItems(newItems);
   };
   const deleteCartItem = (index) => {
     let newCart = cart.filter((item, i) => index != i);
@@ -133,13 +166,13 @@ const Products = (props) => {
         </Card.Header>
         <Accordion.Collapse eventKey={1 + index}>
           <Card.Body>
-            <div class="row">
-              <div class="col text-left">
+            <div className="row">
+              <div className="col text-left">
                 <label>
                   $ {item.cost} from {item.country}{" "}
                 </label>
               </div>
-              <div class="col text-right">
+              <div className="col text-right">
                 <button
                   className="btn btn-danger"
                   onClick={() => deleteCartItem(index)}
@@ -174,10 +207,10 @@ const Products = (props) => {
     console.log(`total updated to ${newTotal}`);
     return newTotal;
   };
+
   const restockProducts = (url) => {
     console.log(`Restock called on ${query}`);
-
-    doFetch(url);
+    resetItems(apiData);
   };
 
   return (
