@@ -1,11 +1,3 @@
-// simulate getting products from DataBase
-// const products = [
-//   { name: "Apples_:", country: "Italy", cost: 3, instock: 10 },
-//   { name: "Oranges:", country: "Spain", cost: 4, instock: 3 },
-//   { name: "Beans__:", country: "USA", cost: 2, instock: 5 },
-//   { name: "Cabbage:", country: "USA", cost: 1, instock: 8 },
-// ];
-//=========Cart=============
 const Cart = (props) => {
   const { Card, Accordion, Button } = ReactBootstrap;
   let data = props.location.data ? props.location.data : products;
@@ -92,11 +84,6 @@ const Products = (props) => {
       data: [],
     }
   );
-
-  useEffect(() => {
-    doFetch(query);
-  }, [query]);
-
   useEffect(() => {
     console.log(`Rendering Products ${JSON.stringify(apiData.data)}`);
     const { data: response } = apiData;
@@ -109,7 +96,7 @@ const Products = (props) => {
 
     setItems(mappedItems);
   }, [apiData]);
-  // Fetch Data
+
   const addToCart = (e) => {
     let name = e.target.name;
     let item = items.filter((item) => item.name == name);
@@ -121,7 +108,6 @@ const Products = (props) => {
     let newCart = cart.filter((item, i) => index != i);
     setCart(newCart);
   };
-  const photos = ["apple.png", "orange.png", "beans.png", "cabbage.png"];
 
   let list = items.map((item, index) => {
     let n = index + 1049;
@@ -131,7 +117,7 @@ const Products = (props) => {
       <li key={index}>
         <Image src={url} width={70} roundedCircle></Image>
         <Button variant="primary" size="large">
-          {item.name}:{item.cost}
+          {item.name}: ${item.cost} Qty: {item.instock}
         </Button>
         <input name={item.name} type="submit" onClick={addToCart}></input>
       </li>
@@ -147,14 +133,22 @@ const Products = (props) => {
         </Card.Header>
         <Accordion.Collapse eventKey={1 + index}>
           <Card.Body>
-            $ {item.cost} from {item.country}
-            <button
-              className="btn btn-danger"
-              onClick={() => deleteCartItem(index)}
-              type="button"
-            >
-              Delete
-            </button>
+            <div class="row">
+              <div class="col text-left">
+                <label>
+                  $ {item.cost} from {item.country}{" "}
+                </label>
+              </div>
+              <div class="col text-right">
+                <button
+                  className="btn btn-danger"
+                  onClick={() => deleteCartItem(index)}
+                  type="button"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
           </Card.Body>
         </Accordion.Collapse>
       </Card>
@@ -180,8 +174,11 @@ const Products = (props) => {
     console.log(`total updated to ${newTotal}`);
     return newTotal;
   };
-  // TODO: implement the restockProducts function
-  const restockProducts = (url) => {};
+  const restockProducts = (url) => {
+    console.log(`Restock called on ${query}`);
+
+    doFetch(url);
+  };
 
   return (
     <Container>
@@ -207,8 +204,7 @@ const Products = (props) => {
           <Row>
             <form
               onSubmit={(event) => {
-                restockProducts(`http://localhost:1337/${query}`);
-                console.log(`Restock called on ${query}`);
+                restockProducts(event.target.value);
                 event.preventDefault();
               }}
             >
@@ -225,5 +221,4 @@ const Products = (props) => {
     </Container>
   );
 };
-// ========================================
 ReactDOM.render(<Products />, document.getElementById("root"));
