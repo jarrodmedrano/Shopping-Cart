@@ -95,8 +95,7 @@ const Products = (props) => {
     data: [],
   });
 
-  const resetItems = () => {
-    console.log(`Rendering Products ${JSON.stringify(apiData.data)}`);
+  useEffect(() => {
     const { data: response } = apiData;
     const mappedItems = response.map((item) => {
       return {
@@ -104,58 +103,65 @@ const Products = (props) => {
         ...item.attributes,
       };
     });
-
     setItems(mappedItems);
-  };
-  useEffect(() => {
-    resetItems(apiData);
   }, [apiData]);
 
-  const addToCart = (e) => {
-    let name = e.target.name;
-    const itemStock = items.find((item) => item.name === name);
-    console.log("itemstock", itemStock);
-    if (itemStock.instock > 0) {
-      let item = items.filter((item) => item.name == name);
-      console.log(`add to Cart ${JSON.stringify(item)}`);
-      setCart([...cart, ...item]);
-      deleteStoreItem(name);
-      doFetch(query);
-    }
-  };
-  const deleteStoreItem = (name) => {
-    const newItems = items.map((item, index) => {
-      let newQty = item.instock;
-      if (item.name === name && newQty > 0) {
-        newQty--;
+  const addToCart = React.useCallback(
+    (e) => {
+      let name = e.target.name;
+      const itemStock = items.find((item) => item.name === name);
+      console.log("itemstock", itemStock);
+      if (itemStock.instock > 0) {
+        let item = items.filter((item) => item.name == name);
+        console.log(`add to Cart ${JSON.stringify(item)}`);
+        setCart([...cart, ...item]);
+        deleteStoreItem(name);
       }
-      return {
-        ...item,
-        instock: newQty,
-      };
-    });
+    },
+    [items]
+  );
 
-    setItems(newItems);
-  };
+  const deleteStoreItem = React.useCallback(
+    (name) => {
+      const newItems = items.map((item, index) => {
+        let newQty = item.instock;
+        if (item.name === name && newQty > 0) {
+          newQty--;
+        }
+        return {
+          ...item,
+          instock: newQty,
+        };
+      });
+
+      setItems(newItems);
+    },
+    [items]
+  );
+
   const deleteCartItem = (index) => {
     let newCart = cart.filter((item, i) => index != i);
     setCart(newCart);
   };
 
-  let list = items.map((item, index) => {
-    let n = index + 1049;
-    let url = "https://picsum.photos/id/" + n + "/50/50";
+  const List = () => {
+    return items.map((item, index) => {
+      let n = index + 1049;
+      let url = "https://picsum.photos/id/" + n + "/50/50";
 
-    return (
-      <li key={index}>
-        <Image src={url} width={70} roundedCircle></Image>
-        <Button variant="primary" size="large">
-          {item.name}: ${item.cost} Qty: {item.instock}
-        </Button>
-        <input name={item.name} type="submit" onClick={addToCart}></input>
-      </li>
-    );
-  });
+      return (
+        <li key={index}>
+          <Image src={url} width={70} roundedCircle></Image>
+          <Button variant="primary" size="large">
+            {item.name}: ${item.cost} Qty: {item.instock}
+          </Button>
+          <input name={item.name} type="submit" onClick={addToCart}></input>
+        </li>
+      );
+    });
+  };
+
+  const MemoList = React.memo(List);
   let cartList = cart.map((item, index) => {
     return (
       <Card key={index}>
@@ -208,9 +214,9 @@ const Products = (props) => {
     return newTotal;
   };
 
-  const restockProducts = (url) => {
+  const restockProducts = () => {
     console.log(`Restock called on ${query}`);
-    resetItems(apiData);
+    doFetch(`${query}?id=${Math.random()}`);
   };
 
   return (
@@ -222,7 +228,9 @@ const Products = (props) => {
           <Row>
             <Col>
               <h1>Product List</h1>
-              <ul style={{ listStyleType: "none" }}>{list}</ul>
+              <ul style={{ listStyleType: "none" }}>
+                <MemoList />
+              </ul>
             </Col>
             <Col>
               <h1>Cart Contents</h1>
@@ -230,14 +238,16 @@ const Products = (props) => {
             </Col>
             <Col>
               <h1>CheckOut </h1>
-              <Button onClick={checkOut}>CheckOut $ {finalList().total}</Button>
+              <Button disabled={isLoading} onClick={checkOut}>
+                CheckOut $ {finalList().total}
+              </Button>
               <div> {finalList().total > 0 && finalList().final} </div>
             </Col>
           </Row>
           <Row>
             <form
               onSubmit={(event) => {
-                restockProducts(event.target.value);
+                restockProducts();
                 event.preventDefault();
               }}
             >
@@ -246,7 +256,9 @@ const Products = (props) => {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
-              <button type="submit">ReStock Products</button>
+              <button disabled={isLoading} type="submit">
+                ReStock Products
+              </button>
             </form>
           </Row>
         </>
