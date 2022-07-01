@@ -97,13 +97,17 @@ const Products = (props) => {
 
   useEffect(() => {
     const { data: response } = apiData;
-    const mappedItems = response.map((item) => {
-      return {
-        ...item.id,
-        ...item.attributes,
-      };
-    });
-    setItems(mappedItems);
+    if (response) {
+      const mappedItems = response.map((item) => {
+        return {
+          ...item.id,
+          ...item.attributes,
+        };
+      });
+      setItems(mappedItems);
+    } else {
+      setItems([]);
+    }
   }, [apiData]);
 
   const addToCart = React.useCallback(
@@ -216,21 +220,25 @@ const Products = (props) => {
 
   const restockProducts = () => {
     console.log(`Restock called on ${query}`);
-    doFetch(`${query}?id=${Math.random()}`);
+    doFetch(`${query}?id=${Math.random()}`, {});
   };
 
   return (
     <Container>
-      {isLoading ? (
+      {isLoading === true ? (
         <div>Loading....</div>
       ) : (
         <>
           <Row>
             <Col>
               <h1>Product List</h1>
-              <ul style={{ listStyleType: "none" }}>
-                <MemoList />
-              </ul>
+              {isError === true ? (
+                <p>Error loading products</p>
+              ) : (
+                <ul style={{ listStyleType: "none" }}>
+                  <MemoList />
+                </ul>
+              )}
             </Col>
             <Col>
               <h1>Cart Contents</h1>
